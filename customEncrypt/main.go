@@ -1,50 +1,56 @@
 package main
 
 import (
-	"crypto/md5"
 	"crypto/sha256"
+	"customEncrypt/util"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	"github.com/gin-gonic/gin"
 )
 
 type CustomEncrypt struct {
 	failureCount int
+	failedData   map[string]error
 }
 
 func New() *CustomEncrypt {
-	return &CustomEncrypt{failureCount: 0}
+	return &CustomEncrypt{
+		failureCount: 0,
+		failedData:   make(map[string]error),
+	}
 }
 
-func (ce *CustomEncrypt) EncryptStrings(strings []string, method string) ([]string, error) {
+func (ce *CustomEncrypt) EncryptStrings(strings []string, method string) []string {
 	var encryptedStrings []string
 	for _, str := range strings {
 		encrypted, err := ce.encrypt(str, method)
 		if err != nil {
 			ce.failureCount++
+			ce.failedData[str] = err
 			continue
 		}
 		encryptedStrings = append(encryptedStrings, encrypted)
 	}
-	return encryptedStrings, nil
+	return encryptedStrings
 }
 
-func (ce *CustomEncrypt) EncryptMap(data map[string]string, method string) (map[string]string, error) {
+func (ce *CustomEncrypt) EncryptMap(data map[string]string, method string) map[string]string {
 	encryptedMap := make(map[string]string)
 	for key, value := range data {
 		encrypted, err := ce.encrypt(value, method)
 		if err != nil {
 			ce.failureCount++
+			ce.failedData[key] = err
 			continue
 		}
 		encryptedMap[key] = encrypted
 	}
-	return encryptedMap, nil
+	return encryptedMap
 }
 
-func (ce *CustomEncrypt) GetFailureCount() int {
-	return ce.failureCount
+func (ce *CustomEncrypt) GetFailureInfo() (int, map[string]error) {
+	return ce.failureCount, ce.failedData
 }
 
 func (ce *CustomEncrypt) encrypt(data, method string) (string, error) {
@@ -52,7 +58,8 @@ func (ce *CustomEncrypt) encrypt(data, method string) (string, error) {
 	case "sha256":
 		return sha256Encrypt(data), nil
 	case "md5":
-		return md5Encrypt(data), nil
+		hash, err := md5Encrypt(data)
+		return hash, err
 	case "base64":
 		return base64Encrypt(data), nil
 	default:
@@ -65,9 +72,9 @@ func sha256Encrypt(data string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func md5Encrypt(data string) string {
-	hash := md5.Sum([]byte(data))
-	return hex.EncodeToString(hash[:])
+func md5Encrypt(data string) (string, error) {
+	hash, err := util.Md5([]byte(data))
+	return hex.EncodeToString(hash[:]), err
 }
 
 func base64Encrypt(data string) string {
@@ -75,15 +82,53 @@ func base64Encrypt(data string) string {
 }
 
 func main() {
+	r := gin.Default()
 	ce := New()
+	r.POST("/encrypt/mapstring", func(c *gin.Context) {
+		var requestData struct {
+			DataToEncrypt  map[string]string `json:"dataToEncrypt"`
+			EncryptionType string            `json:"encryptionType"`
+		}
 
-	stringsToEncrypt := []string{"test1", "test1"}
-	encryptedStrings, _ := ce.EncryptStrings(stringsToEncrypt, "base64")
-	fmt.Println("Encrypted Strings:", encryptedStrings)
+		if err := c.BindJSON(&requestData); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON"})
+			return
+		}
 
-	dataToEncrypt := map[string]string{"key1": "value1", "key2": "value2"}
-	encryptedMap, _ := ce.EncryptMap(dataToEncrypt, "md5")
-	fmt.Println("Encrypted Map:", encryptedMap)
+		encryptedMap := ce.EncryptMap(requestData.DataToEncrypt, requestData.EncryptionType)
 
-	fmt.Println("Failure Count:", ce.GetFailureCount())
+		c.JSON(200, gin.H{"encryptedMap": encryptedMap})
+	})
+
+	r.POST("/encrypt/string", func(c *gin.Context) {
+		var requestData struct {
+			Strings        []string `json:"strings"`
+			EncryptionType string   `json:"encryptionType"`
+		}
+
+		if err := c.BindJSON(&requestData); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON"})
+			return
+		}
+
+		encryptedStrings := ce.EncryptStrings(requestData.Strings, requestData.EncryptionType)
+
+		c.JSON(200, gin.H{"encryptedStrings": encryptedStrings})
+	})
+
+	r.POST("/encrypt/error", func(c *gin.Context) {
+		failureCount, failedData := ce.GetFailureInfo()
+
+		failedDataString := make(map[string]string)
+		for key, value := range failedData {
+			failedDataString[key] = value.Error()
+		}
+
+		c.JSON(200, gin.H{
+			"failureCount": failureCount,
+			"failedData":   failedDataString,
+		})
+	})
+
+	r.Run(":8080")
 }
