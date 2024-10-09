@@ -24,6 +24,11 @@ func New() *CustomEncrypt {
 func (ce *CustomEncrypt) EncryptStrings(strings []string, method string) []string {
 	var encryptedStrings []string
 	for _, str := range strings {
+		if len(str) == 0 {
+			ce.failureCount++
+			ce.failedData[str] = errors.New("empty string")
+			continue
+		}
 		encrypted, err := ce.encrypt(str, method)
 		if err != nil {
 			ce.failureCount++

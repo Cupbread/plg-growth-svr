@@ -1,0 +1,9 @@
+mysql:
+    database: note
+    host: 127.0.0.1
+    passwd: wsc963..
+    port: 3306
+    user: root
+settings:
+    application:
+        isinit: false

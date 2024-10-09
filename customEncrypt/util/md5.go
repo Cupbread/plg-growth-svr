@@ -5,7 +5,6 @@ import (
 )
 
 func Md5(message []byte) ([16]byte, error) {
-	// Constants for MD5
 	var s = [64]int{
 		7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
 		5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
@@ -32,25 +31,21 @@ func Md5(message []byte) ([16]byte, error) {
 		0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
 	}
 
-	// Initial hash values
 	var h0 uint32 = 0x67452301
 	var h1 uint32 = 0xefcdab89
 	var h2 uint32 = 0x98badcfe
 	var h3 uint32 = 0x10325476
 
-	// Preprocessing: padding the message
 	originalLength := uint64(len(message) * 8)
 	message = append(message, 0x80)
 	for len(message)%64 != 56 {
 		message = append(message, 0x00)
 	}
 
-	// Append original length in bits mod (2^64) to message
 	lengthBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(lengthBytes, originalLength)
 	message = append(message, lengthBytes...)
 
-	// Process the message in successive 512-bit chunks
 	for i := 0; i < len(message); i += 64 {
 		var M [16]uint32
 		for j := 0; j < 16; j++ {
@@ -88,8 +83,6 @@ func Md5(message []byte) ([16]byte, error) {
 		h2 += c
 		h3 += d
 	}
-
-	// Produce the final hash value (big-endian) as a 128-bit number
 	var result [16]byte
 	binary.LittleEndian.PutUint32(result[0:4], h0)
 	binary.LittleEndian.PutUint32(result[4:8], h1)
