@@ -15,18 +15,7 @@ func NewNoteDAO(db *gorm.DB) *NoteDAO {
 
 // Create a new note
 func (dao *NoteDAO) CreateNote(note *model.Note) error {
-	//解决只传入id时name会被覆盖为空的bug
-	if note.Tags != nil {
-		var tags []*model.Tag
-		for _, t := range note.Tags {
-			var tag model.Tag
-			if err := dao.DB.First(&tag, t.ID).Error; err != nil {
-				return err
-			}
-			tags = append(tags, &tag)
-		}
-		note.Tags = tags
-	}
+	//只更新指定字段
 	return dao.DB.Create(note).Error
 }
 

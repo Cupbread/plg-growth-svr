@@ -53,12 +53,27 @@ func Setup() {
 }
 
 func AutoMigrate() {
-	//err := DBGorm.AutoMigrate(&model.Note{}, &model.Tag{})
+	//err := DBGorm.AutoMigrate(&model.Note{}, &model.Tag{}, &model.NoteTag{})
 	//if err != nil {
 	//	log.Fatalf("auto migration error %v", err)
 	//} else {
 	//	log.Println("Auto migration completed successfully")
 	//}
+
+	//err := DBGorm.AutoMigrate(&model.Tag{})
+	//if err != nil {
+	//	log.Fatalf("Failed to migrate table: %v", err)
+	//}
+	//err = DBGorm.AutoMigrate(&model.Note{})
+	//if err != nil {
+	//	log.Fatalf("Failed to migrate table: %v", err)
+	//}
+	//err := DBGorm.AutoMigrate(&model.NoteTag{})
+	//if err != nil {
+	//	log.Fatalf("Failed to migrate table: %v", err)
+	//}
+	//log.Println("数据表迁移成功！")
+
 }
 
 func GetMysqlConnect() string {
